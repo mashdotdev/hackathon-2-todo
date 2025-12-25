@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlmodel import Session, select
 
-from src.models.task import Task, TaskStatus
+from src.models.task import Task
 from src.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 
 
@@ -71,12 +71,8 @@ class TaskService:
         """
         statement = select(Task).where(Task.user_id == user_id)
 
-        if status_filter:
-            try:
-                status = TaskStatus(status_filter)
-                statement = statement.where(Task.status == status)
-            except ValueError:
-                pass  # Invalid status, ignore filter
+        if status_filter and status_filter in ("pending", "completed"):
+            statement = statement.where(Task.status == status_filter)
 
         statement = statement.order_by(Task.created_at.desc())
         tasks = self.db.exec(statement).all()
@@ -147,10 +143,10 @@ class TaskService:
         if task is None:
             return None
 
-        if task.status == TaskStatus.COMPLETED:
-            task.status = TaskStatus.PENDING
+        if task.status == "completed":
+            task.status = "pending"
         else:
-            task.status = TaskStatus.COMPLETED
+            task.status = "completed"
 
         task.updated_at = datetime.utcnow()
         self.db.add(task)

@@ -36,7 +36,7 @@ class Task(SQLModel, table=True):
     )
     title: str = Field(max_length=200)
     description: str | None = Field(default=None, max_length=1000)
-    status: TaskStatus = Field(default=TaskStatus.PENDING)
+    status: str = Field(default="pending")
     user_id: str = Field(foreign_key="users.id", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -44,4 +44,4 @@ class Task(SQLModel, table=True):
     @property
     def is_completed(self) -> bool:
         """Check if task is completed."""
-        return self.status == TaskStatus.COMPLETED
+        return self.status == "completed"

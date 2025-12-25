@@ -8,7 +8,7 @@ from sqlmodel.pool import StaticPool
 from src.api.deps import get_db
 from src.core.security import create_access_token, get_password_hash
 from src.main import app
-from src.models.task import Task, TaskStatus
+from src.models.task import Task
 from src.models.user import User
 
 
@@ -83,7 +83,7 @@ def multiple_tasks_fixture(session: Session, test_user: User) -> list[Task]:
     """Create multiple test tasks."""
     tasks = [
         Task(title="Task 1", user_id=test_user.id),
-        Task(title="Task 2", user_id=test_user.id, status=TaskStatus.COMPLETED),
+        Task(title="Task 2", user_id=test_user.id, status="completed"),
         Task(title="Task 3", description="With description", user_id=test_user.id),
     ]
     for task in tasks:
