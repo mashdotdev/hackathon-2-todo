@@ -216,7 +216,7 @@ todo list
 ## Next Steps
 
 After Phase I:
-- Phase II adds SQLite persistence
+- Phase II adds Neon PostgreSQL persistence
 - Phase III adds AI chatbot interface
 - Phase IV adds Kubernetes deployment
 - Phase V adds cloud deployment with monitoring

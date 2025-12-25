@@ -155,7 +155,7 @@ Both transitions are allowed at any time (toggle behavior).
 
 Phase I has a single entity with no relationships. Future phases will add:
 
-- Phase II: Persistence (SQLite/JSON file)
+- Phase II: Persistence (Neon Serverless PostgreSQL)
 - Phase III: AI-generated subtasks, categories
 - Phase IV+: Multi-user, projects, tags
 
