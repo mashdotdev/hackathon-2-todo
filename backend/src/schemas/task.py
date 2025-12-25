@@ -1,10 +1,11 @@
 """Task schemas for API validation."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from src.models.task import TaskStatus
+TaskStatusType = Literal["pending", "completed"]
 
 
 class TaskCreate(BaseModel):
@@ -19,7 +20,7 @@ class TaskUpdate(BaseModel):
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=1000)
-    status: TaskStatus | None = None
+    status: TaskStatusType | None = None
 
 
 class TaskResponse(BaseModel):
@@ -28,7 +29,7 @@ class TaskResponse(BaseModel):
     id: str
     title: str
     description: str | None
-    status: TaskStatus
+    status: TaskStatusType
     created_at: datetime
     updated_at: datetime
 

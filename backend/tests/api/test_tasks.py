@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from src.models.task import Task, TaskStatus
+from src.models.task import Task
 from src.models.user import User
 
 
@@ -223,7 +223,7 @@ class TestToggleTaskComplete:
         self, client: TestClient, auth_headers: dict[str, str], test_task: Task
     ):
         """Should toggle task from pending to completed."""
-        assert test_task.status == TaskStatus.PENDING
+        assert test_task.status == "pending"
         response = client.patch(
             f"/api/tasks/{test_task.id}/complete", headers=auth_headers
         )
@@ -242,7 +242,7 @@ class TestToggleTaskComplete:
         task = Task(
             title="Completed Task",
             user_id=test_user.id,
-            status=TaskStatus.COMPLETED,
+            status="completed",
         )
         session.add(task)
         session.commit()
