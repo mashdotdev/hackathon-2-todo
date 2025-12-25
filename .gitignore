@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+.uv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# UV
+uv.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (for Phase II frontend)
+node_modules/
+.next/
+out/
+build/
+*.log
