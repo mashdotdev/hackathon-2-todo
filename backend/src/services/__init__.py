@@ -1,5 +1,6 @@
 """Services for Todo application."""
 
-from src.services.task_service import TaskService, get_task_service, reset_task_service
+from src.services.auth_service import AuthService
+from src.services.task_service import TaskService
 
-__all__ = ["TaskService", "get_task_service", "reset_task_service"]
+__all__ = ["AuthService", "TaskService"]

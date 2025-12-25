@@ -1,25 +1,52 @@
-"""Main entry point for Todo CLI application."""
+"""Main entry point for Todo API application."""
 
-import typer
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-from src.cli.commands import app as task_app
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-app = typer.Typer(
-    name="todo",
-    help="Todo Console Application - Phase I\n\nManage your tasks.",
-    add_completion=False,
-    no_args_is_help=True,
+from src.core.config import settings
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler for startup and shutdown events."""
+    # Startup
+    yield
+    # Shutdown
+
+
+app = FastAPI(
+    title="Todo API",
+    description="Phase II: Full-Stack Todo Application API",
+    version="0.2.0",
+    lifespan=lifespan,
 )
 
-# Add task commands directly to main app
-app.add_typer(task_app, name="task")
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL] if settings.FRONTEND_URL else ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.command()
-def version() -> None:
-    """Show application version."""
-    typer.echo("Todo Console v0.1.0 (Phase I)")
+@app.get("/health")
+async def health_check() -> dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "healthy"}
 
 
-if __name__ == "__main__":
-    app()
+# Import and include routers after app creation to avoid circular imports
+def setup_routes() -> None:
+    """Setup API routes."""
+    from src.api.routes import auth, tasks
+
+    app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+    app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+
+
+setup_routes()
