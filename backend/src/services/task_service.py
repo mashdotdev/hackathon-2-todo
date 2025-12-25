@@ -1,180 +1,159 @@
-"""Task service for CRUD operations with in-memory storage."""
+"""Task service for database CRUD operations."""
 
+from datetime import datetime
+
+from sqlmodel import Session, select
 
 from src.models.task import Task, TaskStatus
+from src.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 
 
 class TaskService:
-    """Service for managing tasks in memory.
+    """Service for managing tasks in database.
 
-    Provides CRUD operations for tasks with in-memory storage.
-    Data is lost when the application exits.
+    Provides CRUD operations for tasks with database persistence.
+    All operations are scoped to the authenticated user.
     """
 
-    def __init__(self) -> None:
-        """Initialize the task service with empty storage."""
-        self._tasks: dict[str, Task] = {}
+    def __init__(self, db: Session) -> None:
+        """Initialize the task service with database session."""
+        self.db = db
 
-    def add_task(
-        self,
-        title: str,
-        description: str | None = None,
-    ) -> Task:
+    def create_task(self, user_id: str, task_data: TaskCreate) -> TaskResponse:
         """Create a new task.
 
         Args:
-            title: Task title (required)
-            description: Task description (optional)
+            user_id: Owner user ID
+            task_data: Task creation data
 
         Returns:
-            The created Task object
-
-        Raises:
-            ValueError: If title is invalid
+            The created task response
         """
-        task = Task(title=title, description=description)
-        self._tasks[task.id] = task
-        return task
+        task = Task(
+            title=task_data.title,
+            description=task_data.description,
+            user_id=user_id,
+        )
+        self.db.add(task)
+        self.db.commit()
+        self.db.refresh(task)
+        return TaskResponse.model_validate(task)
 
-    def get_task(self, task_id: str) -> Task | None:
+    def get_task(self, task_id: str, user_id: str) -> TaskResponse | None:
         """Get a task by ID.
 
         Args:
             task_id: The task identifier
+            user_id: The owner user ID
 
         Returns:
-            Task if found, None otherwise
+            Task response if found, None otherwise
         """
-        return self._tasks.get(task_id)
+        statement = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+        task = self.db.exec(statement).first()
+        if task is None:
+            return None
+        return TaskResponse.model_validate(task)
 
     def list_tasks(
         self,
-        status: TaskStatus | None = None,
-    ) -> list[Task]:
-        """List all tasks, optionally filtered by status.
+        user_id: str,
+        status_filter: str | None = None,
+    ) -> list[TaskResponse]:
+        """List all tasks for a user, optionally filtered by status.
 
         Args:
-            status: Filter by status (optional)
+            user_id: The owner user ID
+            status_filter: Filter by status string (optional)
 
         Returns:
             List of tasks matching the filter
         """
-        tasks = list(self._tasks.values())
-        if status is not None:
-            tasks = [t for t in tasks if t.status == status]
-        return sorted(tasks, key=lambda t: t.created_at, reverse=True)
+        statement = select(Task).where(Task.user_id == user_id)
+
+        if status_filter:
+            try:
+                status = TaskStatus(status_filter)
+                statement = statement.where(Task.status == status)
+            except ValueError:
+                pass  # Invalid status, ignore filter
+
+        statement = statement.order_by(Task.created_at.desc())
+        tasks = self.db.exec(statement).all()
+        return [TaskResponse.model_validate(task) for task in tasks]
 
     def update_task(
         self,
         task_id: str,
-        title: str | None = None,
-        description: str | None = None,
-    ) -> Task | None:
+        user_id: str,
+        task_data: TaskUpdate,
+    ) -> TaskResponse | None:
         """Update an existing task.
 
         Args:
             task_id: The task identifier
-            title: New title (optional)
-            description: New description (optional)
+            user_id: The owner user ID
+            task_data: Task update data
 
         Returns:
-            Updated Task if found, None otherwise
-
-        Raises:
-            ValueError: If title is invalid
+            Updated task response if found, None otherwise
         """
-        task = self._tasks.get(task_id)
+        statement = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+        task = self.db.exec(statement).first()
         if task is None:
             return None
-        task.update(title=title, description=description)
-        return task
 
-    def delete_task(self, task_id: str) -> bool:
+        update_data = task_data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(task, key, value)
+
+        task.updated_at = datetime.utcnow()
+        self.db.add(task)
+        self.db.commit()
+        self.db.refresh(task)
+        return TaskResponse.model_validate(task)
+
+    def delete_task(self, task_id: str, user_id: str) -> bool:
         """Delete a task by ID.
 
         Args:
             task_id: The task identifier
+            user_id: The owner user ID
 
         Returns:
             True if deleted, False if not found
         """
-        if task_id in self._tasks:
-            del self._tasks[task_id]
-            return True
-        return False
+        statement = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+        task = self.db.exec(statement).first()
+        if task is None:
+            return False
 
-    def complete_task(self, task_id: str) -> Task | None:
-        """Mark a task as completed.
+        self.db.delete(task)
+        self.db.commit()
+        return True
+
+    def toggle_complete(self, task_id: str, user_id: str) -> TaskResponse | None:
+        """Toggle task completion status.
 
         Args:
             task_id: The task identifier
+            user_id: The owner user ID
 
         Returns:
-            Updated Task if found, None otherwise
+            Updated task response if found, None otherwise
         """
-        task = self._tasks.get(task_id)
+        statement = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+        task = self.db.exec(statement).first()
         if task is None:
             return None
-        task.mark_complete()
-        return task
 
-    def uncomplete_task(self, task_id: str) -> Task | None:
-        """Mark a task as incomplete/pending.
+        if task.status == TaskStatus.COMPLETED:
+            task.status = TaskStatus.PENDING
+        else:
+            task.status = TaskStatus.COMPLETED
 
-        Args:
-            task_id: The task identifier
-
-        Returns:
-            Updated Task if found, None otherwise
-        """
-        task = self._tasks.get(task_id)
-        if task is None:
-            return None
-        task.mark_incomplete()
-        return task
-
-    def get_stats(self) -> dict[str, int]:
-        """Get task statistics.
-
-        Returns:
-            Dictionary with task counts
-        """
-        total = len(self._tasks)
-        completed = sum(1 for t in self._tasks.values() if t.is_completed)
-        return {
-            "total": total,
-            "completed": completed,
-            "pending": total - completed,
-        }
-
-    def clear_all(self) -> int:
-        """Delete all tasks.
-
-        Returns:
-            Number of tasks deleted
-        """
-        count = len(self._tasks)
-        self._tasks.clear()
-        return count
-
-
-# Global singleton instance for CLI usage
-_task_service: TaskService | None = None
-
-
-def get_task_service() -> TaskService:
-    """Get the global TaskService instance.
-
-    Returns:
-        The singleton TaskService instance
-    """
-    global _task_service
-    if _task_service is None:
-        _task_service = TaskService()
-    return _task_service
-
-
-def reset_task_service() -> None:
-    """Reset the global TaskService instance (for testing)."""
-    global _task_service
-    _task_service = None
+        task.updated_at = datetime.utcnow()
+        self.db.add(task)
+        self.db.commit()
+        self.db.refresh(task)
+        return TaskResponse.model_validate(task)
