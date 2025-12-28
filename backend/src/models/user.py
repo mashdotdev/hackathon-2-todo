@@ -2,8 +2,12 @@
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from src.models.conversation import Conversation
 
 
 class User(SQLModel, table=True):
@@ -30,3 +34,6 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships (Phase III)
+    conversation: Optional["Conversation"] = Relationship(back_populates="user")

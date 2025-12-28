@@ -19,8 +19,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title="Todo API",
-    description="Phase II: Full-Stack Todo Application API",
-    version="0.2.0",
+    description="Phase III: AI-Powered Todo Application with MCP",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -50,10 +50,47 @@ async def health_check() -> dict[str, str]:
 # Import and include routers after app creation to avoid circular imports
 def setup_routes() -> None:
     """Setup API routes."""
-    from src.api.routes import auth, tasks
+    from src.api.routes import auth, chat, tasks
 
     app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
     app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+    app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+
+
+def setup_mcp() -> None:
+    """Setup MCP server endpoint."""
+    from src.mcp.server import mcp
+
+    # Mount MCP server at /mcp endpoint with SSE transport
+    app.mount("/mcp", mcp.sse_app())
+
+
+def setup_chatkit() -> None:
+    """Setup ChatKit endpoint."""
+    from fastapi import Depends, Request
+    from fastapi.responses import Response, StreamingResponse
+
+    from src.api.deps import get_current_user
+    from src.chatkit.server import chatkit_server
+    from src.chatkit.store import RequestContext
+    from src.models.user import User
+
+    @app.post("/chatkit")
+    async def chatkit_endpoint(
+        request: Request,
+        current_user: User = Depends(get_current_user),
+    ) -> Response:
+        """ChatKit endpoint for AI-powered chat."""
+        from chatkit.server import StreamingResult
+
+        context = RequestContext(user_id=current_user.id)
+        result = await chatkit_server.process(await request.body(), context=context)
+
+        if isinstance(result, StreamingResult):
+            return StreamingResponse(result, media_type="text/event-stream")
+        return Response(content=result.json, media_type="application/json")
 
 
 setup_routes()
+setup_mcp()
+setup_chatkit()

@@ -1,7 +1,7 @@
 [project]
 name = "todo-api"
-version = "0.2.0"
-description = "Phase II: Full-Stack Todo API with FastAPI"
+version = "0.3.0"
+description = "Phase III: AI-Powered Todo API with MCP"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -15,6 +15,8 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "alembic>=1.14.0",
     "python-multipart>=0.0.20",
+    "openai-agents[litellm]>=0.6.4",
+    "openai-chatkit>=0.1.0",
 ]
 
 [build-system]

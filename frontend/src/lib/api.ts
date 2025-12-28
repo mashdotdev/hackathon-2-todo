@@ -113,6 +113,33 @@ class ApiClient {
     );
     return response.data;
   }
+
+  // Chat endpoints
+  async getChatHistory(limit?: number): Promise<ChatHistoryResponse> {
+    const params = limit ? { limit } : {};
+    const response = await this.client.get<ChatHistoryResponse>(
+      "/api/chat/history",
+      { params }
+    );
+    return response.data;
+  }
+
+  async clearChatHistory(): Promise<void> {
+    await this.client.delete("/api/chat/history");
+  }
+}
+
+// Chat types
+export interface StoredMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface ChatHistoryResponse {
+  conversation_id: string;
+  messages: StoredMessage[];
 }
 
 export const api = new ApiClient();

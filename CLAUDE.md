@@ -211,3 +211,7 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 
 ## Recent Changes
 - 002-phase2-web: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+
+## Active Technologies
+- Python 3.13+ (backend), TypeScript 5.x (frontend) (003-phase3-ai-chatbot)
+- PostgreSQL (Neon Serverless) - extend with conversations/messages tables (003-phase3-ai-chatbot)

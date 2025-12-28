@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(del \"A:\\\\Desktop\\\\hackathon-2-todo\\\\backend\\\\src\\\\chatkit\\\\tools.py\")",
+      "Bash(rm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(uv run python:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
