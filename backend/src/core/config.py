@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
 
+    # Phase III: AI Chatbot - Gemini
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini/gemini-2.5-flash"
+
     @property
     def is_development(self) -> bool:
         """Check if running in development mode."""
