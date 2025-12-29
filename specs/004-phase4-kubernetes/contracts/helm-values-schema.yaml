@@ -1,0 +1,329 @@
+# JSON Schema for Helm values.yaml validation
+# Phase IV: Local Kubernetes Deployment
+# Version: 0.4.0
+
+$schema: http://json-schema.org/draft-07/schema#
+title: Todo Helm Chart Values
+description: Configuration values for the Todo application Helm chart
+type: object
+
+required:
+  - global
+  - backend
+  - frontend
+  - ingress
+
+properties:
+  global:
+    type: object
+    description: Global configuration shared across all components
+    required:
+      - namespace
+    properties:
+      namespace:
+        type: string
+        description: Kubernetes namespace for all resources
+        default: todo
+        pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+      environment:
+        type: string
+        description: Deployment environment
+        enum: [development, staging, production]
+        default: development
+
+  backend:
+    type: object
+    description: Backend API configuration
+    required:
+      - image
+    properties:
+      enabled:
+        type: boolean
+        description: Enable backend deployment
+        default: true
+      replicas:
+        type: integer
+        description: Number of pod replicas
+        minimum: 1
+        maximum: 10
+        default: 1
+      image:
+        type: object
+        required:
+          - repository
+        properties:
+          repository:
+            type: string
+            description: Container image repository
+            default: todo-backend
+          tag:
+            type: string
+            description: Container image tag
+            default: latest
+          pullPolicy:
+            type: string
+            description: Image pull policy
+            enum: [Always, IfNotPresent, Never]
+            default: IfNotPresent
+      service:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [ClusterIP, NodePort, LoadBalancer]
+            default: ClusterIP
+          port:
+            type: integer
+            minimum: 1
+            maximum: 65535
+            default: 8000
+      resources:
+        type: object
+        properties:
+          limits:
+            type: object
+            properties:
+              memory:
+                type: string
+                pattern: "^[0-9]+(Mi|Gi)$"
+                default: "256Mi"
+              cpu:
+                type: string
+                pattern: "^[0-9]+(m)?$"
+                default: "200m"
+          requests:
+            type: object
+            properties:
+              memory:
+                type: string
+                pattern: "^[0-9]+(Mi|Gi)$"
+                default: "128Mi"
+              cpu:
+                type: string
+                pattern: "^[0-9]+(m)?$"
+                default: "100m"
+      probes:
+        type: object
+        properties:
+          liveness:
+            type: object
+            properties:
+              path:
+                type: string
+                default: /health
+              initialDelaySeconds:
+                type: integer
+                minimum: 0
+                default: 10
+              periodSeconds:
+                type: integer
+                minimum: 1
+                default: 10
+              timeoutSeconds:
+                type: integer
+                minimum: 1
+                default: 5
+              failureThreshold:
+                type: integer
+                minimum: 1
+                default: 3
+          readiness:
+            type: object
+            properties:
+              path:
+                type: string
+                default: /ready
+              initialDelaySeconds:
+                type: integer
+                minimum: 0
+                default: 5
+              periodSeconds:
+                type: integer
+                minimum: 1
+                default: 5
+              timeoutSeconds:
+                type: integer
+                minimum: 1
+                default: 3
+              failureThreshold:
+                type: integer
+                minimum: 1
+                default: 3
+      config:
+        type: object
+        description: Backend application configuration
+        properties:
+          logLevel:
+            type: string
+            enum: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+            default: INFO
+          corsOrigins:
+            type: string
+            description: Comma-separated list of allowed CORS origins
+            default: "http://todo.local"
+
+  frontend:
+    type: object
+    description: Frontend application configuration
+    required:
+      - image
+    properties:
+      enabled:
+        type: boolean
+        description: Enable frontend deployment
+        default: true
+      replicas:
+        type: integer
+        description: Number of pod replicas
+        minimum: 1
+        maximum: 10
+        default: 1
+      image:
+        type: object
+        required:
+          - repository
+        properties:
+          repository:
+            type: string
+            description: Container image repository
+            default: todo-frontend
+          tag:
+            type: string
+            description: Container image tag
+            default: latest
+          pullPolicy:
+            type: string
+            description: Image pull policy
+            enum: [Always, IfNotPresent, Never]
+            default: IfNotPresent
+      service:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [ClusterIP, NodePort, LoadBalancer]
+            default: ClusterIP
+          port:
+            type: integer
+            minimum: 1
+            maximum: 65535
+            default: 3000
+      resources:
+        type: object
+        properties:
+          limits:
+            type: object
+            properties:
+              memory:
+                type: string
+                pattern: "^[0-9]+(Mi|Gi)$"
+                default: "128Mi"
+              cpu:
+                type: string
+                pattern: "^[0-9]+(m)?$"
+                default: "100m"
+          requests:
+            type: object
+            properties:
+              memory:
+                type: string
+                pattern: "^[0-9]+(Mi|Gi)$"
+                default: "64Mi"
+              cpu:
+                type: string
+                pattern: "^[0-9]+(m)?$"
+                default: "50m"
+      probes:
+        type: object
+        properties:
+          liveness:
+            type: object
+            properties:
+              path:
+                type: string
+                default: /api/health
+              initialDelaySeconds:
+                type: integer
+                minimum: 0
+                default: 10
+              periodSeconds:
+                type: integer
+                minimum: 1
+                default: 10
+      config:
+        type: object
+        description: Frontend application configuration
+        properties:
+          apiUrl:
+            type: string
+            description: Backend API URL
+            default: "http://todo.local/api"
+
+  ingress:
+    type: object
+    description: Ingress configuration
+    properties:
+      enabled:
+        type: boolean
+        description: Enable ingress resource
+        default: true
+      className:
+        type: string
+        description: Ingress class name
+        default: nginx
+      host:
+        type: string
+        description: Hostname for ingress routing
+        default: todo.local
+      annotations:
+        type: object
+        additionalProperties:
+          type: string
+        description: Ingress annotations
+      tls:
+        type: array
+        items:
+          type: object
+          properties:
+            secretName:
+              type: string
+            hosts:
+              type: array
+              items:
+                type: string
+
+  secrets:
+    type: object
+    description: Sensitive configuration (base64 encoded)
+    properties:
+      create:
+        type: boolean
+        description: Create secrets from values
+        default: true
+      databaseUrl:
+        type: string
+        description: PostgreSQL connection string (base64)
+      secretKey:
+        type: string
+        description: JWT signing secret (base64)
+      openaiApiKey:
+        type: string
+        description: OpenAI API key (base64)
+
+  monitoring:
+    type: object
+    description: Optional monitoring configuration
+    properties:
+      enabled:
+        type: boolean
+        description: Enable Prometheus metrics
+        default: false
+      serviceMonitor:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            default: false
+          interval:
+            type: string
+            default: "30s"

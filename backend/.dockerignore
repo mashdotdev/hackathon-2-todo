@@ -13,6 +13,7 @@ venv/
 .coverage
 htmlcov/
 .mypy_cache/
+.ruff_cache/
 
 # IDE
 .vscode/
@@ -21,18 +22,24 @@ htmlcov/
 # Environment
 .env
 .env.local
+.env.example
 
-# UV
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# UV lock (not needed in container)
 uv.lock
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Node (for Phase II frontend)
-node_modules/
-.next/
-out/
-build/
-*.log
-infra/helm/todo/secrets.yaml

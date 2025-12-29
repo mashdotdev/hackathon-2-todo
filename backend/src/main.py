@@ -43,8 +43,31 @@ app.add_middleware(
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
-    """Health check endpoint."""
+    """Health check endpoint for liveness probe."""
     return {"status": "healthy"}
+
+
+@app.get("/ready")
+async def readiness_check() -> dict[str, str | dict[str, str]]:
+    """Readiness check endpoint for Kubernetes readiness probe.
+
+    Verifies database connectivity before accepting traffic.
+    """
+    from sqlmodel import text
+
+    from src.core.database import engine
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ready", "checks": {"database": "connected"}}
+    except Exception as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_ready", "checks": {"database": str(e)}},
+        )
 
 
 # Import and include routers after app creation to avoid circular imports

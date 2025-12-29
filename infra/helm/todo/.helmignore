@@ -1,0 +1,59 @@
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and
+# negation (prefixed with !). Only one pattern per line.
+
+# Common VCS directories
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+
+# Editor directories and files
+.idea/
+.vscode/
+*.tmproj
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# Various IDEs
+*.iml
+
+# Helm specific
+.helmignore
+secrets.yaml
+secrets.local.yaml
+
+# Documentation that shouldn't be in the chart
+*.md
+LICENSE
+README*
+
+# Testing
+tests/
+test/
+*_test.yaml
+
+# CI/CD
+.github/
+.gitlab/
+.circleci/
+Jenkinsfile
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

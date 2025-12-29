@@ -1,0 +1,157 @@
+# Health Check API Contract
+# Phase IV: Local Kubernetes Deployment
+# Version: 0.4.0
+
+openapi: 3.0.3
+info:
+  title: Todo Health API
+  description: Health check endpoints for Kubernetes probes
+  version: 0.4.0
+  contact:
+    name: Todo Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: http://todo.local
+    description: Minikube ingress
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Liveness probe endpoint
+      description: |
+        Returns healthy if the application process is running.
+        Used by Kubernetes liveness probe to detect hung processes.
+        Does NOT check external dependencies.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Application is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                timestamp: "2025-12-28T10:00:00Z"
+        '500':
+          description: Application is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ready:
+    get:
+      operationId: readinessCheck
+      summary: Readiness probe endpoint
+      description: |
+        Returns ready only when all dependencies are available.
+        Used by Kubernetes readiness probe to control traffic routing.
+        Checks: database connectivity.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Application is ready to receive traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: ready
+                checks:
+                  database: connected
+                timestamp: "2025-12-28T10:00:00Z"
+        '503':
+          description: Application is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: not_ready
+                checks:
+                  database: "connection refused"
+                timestamp: "2025-12-28T10:00:00Z"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+          description: Health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Check timestamp
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+          description: Readiness status
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              description: Database connection status
+          additionalProperties:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+          description: Check timestamp
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+
+  # Kubernetes probe configuration
+  x-kubernetes-probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: 8000
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+
+    readiness:
+      httpGet:
+        path: /ready
+        port: 8000
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+
+tags:
+  - name: Health
+    description: Health check endpoints for Kubernetes probes
