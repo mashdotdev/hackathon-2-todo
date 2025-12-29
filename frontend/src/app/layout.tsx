@@ -1,3 +1,6 @@
+// Must be first import - polyfill for crypto.randomUUID in HTTP contexts
+import "@/lib/crypto-polyfill";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";

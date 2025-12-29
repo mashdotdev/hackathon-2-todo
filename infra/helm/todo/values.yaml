@@ -1,0 +1,108 @@
+# Default values for todo Helm chart
+# Phase IV: Local Kubernetes Deployment
+
+# Namespace configuration
+namespace:
+  create: true
+  name: todo
+
+# Backend configuration
+backend:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+  probes:
+    liveness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /ready
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+  config:
+    logLevel: INFO
+    corsOrigins: "http://todo.local"
+
+# Frontend configuration
+frontend:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+
+  probes:
+    liveness:
+      path: /api/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+  config:
+    # Note: Frontend code already includes /api prefix, so this should NOT include /api
+    apiUrl: "http://todo.local"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  host: todo.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+# Secrets configuration
+secrets:
+  # Set to false if providing secrets externally
+  create: true
+  # Base64 encoded values - override in secrets.yaml
+  databaseUrl: ""
+  secretKey: ""
+  geminiApiKey: ""
+
+# Service account
+serviceAccount:
+  create: false
+  name: ""
+
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""

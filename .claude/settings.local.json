@@ -5,7 +5,8 @@
       "Bash(rm:*)",
       "Bash(npx tsc:*)",
       "Bash(uv run python:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(kubectl get:*)"
     ]
   }
 }
