@@ -2,11 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Cookies from "js-cookie";
+import {
+  Check,
+  ArrowLeft,
+  MessageSquare,
+  Sparkles,
+  ListTodo,
+  Search,
+  CheckCircle,
+  Plus,
+  LayoutDashboard,
+  LogOut,
+} from "lucide-react";
 
 export default function ChatPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [chatKitLoaded, setChatKitLoaded] = useState(false);
   const [ChatKitComponent, setChatKitComponent] = useState<any>(null);
@@ -56,9 +69,14 @@ export default function ChatPage() {
     });
   }, [chatKitLoaded, user]);
 
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
   if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-zinc-500">Loading...</div>
       </div>
     );
@@ -71,40 +89,52 @@ export default function ChatPage() {
   // Show loading while ChatKit loads
   if (!chatKitLoaded || !ChatKitComponent) {
     return (
-      <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
-        <header className="flex items-center justify-between border-b px-4 py-3 dark:border-zinc-800">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              aria-label="Back to dashboard"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Task Assistant
-            </h1>
+      <div className="flex min-h-screen bg-zinc-50">
+        {/* Sidebar */}
+        <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-zinc-200 bg-white">
+          <div className="flex h-16 items-center gap-2 border-b border-zinc-100 px-6">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+              <Check className="h-5 w-5 text-white" strokeWidth={3} />
+            </div>
+            <span className="text-xl font-bold text-zinc-900">TODO</span>
           </div>
-        </header>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-zinc-500">Loading chat...</div>
-        </div>
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-zinc-500">Loading...</div>
+          </div>
+        </aside>
+        <main className="ml-64 flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100">
+              <Sparkles className="h-8 w-8 text-indigo-600" />
+            </div>
+            <p className="text-zinc-500">Loading AI Assistant...</p>
+          </div>
+        </main>
       </div>
     );
   }
 
-  return <ChatKitWrapper ChatKitModule={ChatKitComponent} router={router} />;
+  return (
+    <ChatKitWrapper
+      ChatKitModule={ChatKitComponent}
+      router={router}
+      user={user}
+      onLogout={handleLogout}
+    />
+  );
 }
 
 // Separate component to use the hook
 function ChatKitWrapper({
   ChatKitModule,
-  router
+  router,
+  user,
+  onLogout,
 }: {
   ChatKitModule: { ChatKit: any; useChatKit: any };
   router: any;
+  user: any;
+  onLogout: () => void;
 }) {
   const { ChatKit, useChatKit } = ChatKitModule;
 
@@ -149,27 +179,150 @@ function ChatKitWrapper({
   });
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
-      <header className="flex items-center justify-between border-b px-4 py-3 dark:border-zinc-800">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-            aria-label="Back to dashboard"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            Task Assistant
-          </h1>
+    <div className="flex min-h-screen bg-zinc-50">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-zinc-200 bg-white">
+        {/* Logo */}
+        <div className="flex h-16 items-center gap-2 border-b border-zinc-100 px-6">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+            <Check className="h-5 w-5 text-white" strokeWidth={3} />
+          </div>
+          <span className="text-xl font-bold text-zinc-900">TODO</span>
         </div>
-      </header>
 
-      <div className="flex-1 overflow-hidden">
-        <ChatKit control={control} className="h-full w-full" />
-      </div>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4">
+          <div className="mb-6">
+            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Navigation
+            </p>
+            <div className="space-y-1">
+              <Link
+                href="/dashboard"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+
+              <div className="flex w-full items-center gap-3 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">
+                <MessageSquare className="h-4 w-4" />
+                AI Assistant
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-6">
+            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Quick Actions
+            </p>
+            <div className="space-y-1">
+              <button
+                onClick={() => control?.sendUserMessage({ text: "Show me all my tasks" })}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+              >
+                <ListTodo className="h-4 w-4" />
+                List all tasks
+              </button>
+              <button
+                onClick={() => control?.sendUserMessage({ text: "Add a new task" })}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+              >
+                <Plus className="h-4 w-4" />
+                Add new task
+              </button>
+              <button
+                onClick={() => control?.sendUserMessage({ text: "Show my completed tasks" })}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Completed tasks
+              </button>
+              <button
+                onClick={() => control?.sendUserMessage({ text: "Search for tasks" })}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+              >
+                <Search className="h-4 w-4" />
+                Search tasks
+              </button>
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <p className="text-sm font-medium text-indigo-900">AI Tips</p>
+            </div>
+            <p className="text-xs text-indigo-700">
+              Try asking me to create tasks, set priorities, add due dates, or search
+              for specific items!
+            </p>
+          </div>
+        </nav>
+
+        {/* Bottom - User */}
+        <div className="border-t border-zinc-100 p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-700">
+              {user?.email?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 truncate">
+              <p className="truncate text-sm font-medium text-zinc-900">
+                {user?.email?.split("@")[0]}
+              </p>
+            </div>
+            <button
+              onClick={onLogout}
+              className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="ml-64 flex flex-1 flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
+          <div className="flex h-16 items-center justify-between px-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-zinc-900">AI Assistant</h1>
+                <p className="text-sm text-zinc-500">
+                  Powered by natural language processing
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </div>
+        </header>
+
+        {/* Chat Area */}
+        <div className="flex-1 overflow-hidden">
+          <ChatKit
+            control={control}
+            className="h-full w-full"
+            style={{
+              "--chatkit-primary": "#4f46e5",
+              "--chatkit-primary-hover": "#4338ca",
+            } as React.CSSProperties}
+          />
+        </div>
+      </main>
     </div>
   );
 }

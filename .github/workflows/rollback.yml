@@ -1,0 +1,76 @@
+# Phase V: Rollback Workflow
+# Manual trigger to rollback to previous Helm release
+
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: "Helm revision to rollback to (leave empty for previous)"
+        required: false
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback to Previous Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.28.0"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.13.0"
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Get current release history
+        run: |
+          echo "Current Helm release history:"
+          helm history todo -n todo
+
+      - name: Rollback Helm release
+        run: |
+          if [ -n "${{ github.event.inputs.revision }}" ]; then
+            echo "Rolling back to revision ${{ github.event.inputs.revision }}"
+            helm rollback todo ${{ github.event.inputs.revision }} -n todo --wait
+          else
+            echo "Rolling back to previous revision"
+            helm rollback todo -n todo --wait
+          fi
+
+      - name: Verify rollback
+        run: |
+          echo "Pod status after rollback:"
+          kubectl get pods -n todo
+          echo ""
+          echo "Current Helm release:"
+          helm status todo -n todo
+
+      - name: Health check
+        run: |
+          INGRESS_IP=$(kubectl get ingress todo -n todo -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          if [ -n "$INGRESS_IP" ]; then
+            echo "Testing health endpoint at http://$INGRESS_IP/health"
+            sleep 30  # Wait for pods to be ready
+            if curl -sf "http://$INGRESS_IP/health" > /dev/null; then
+              echo "Rollback successful - health check passed!"
+            else
+              echo "Warning: Health check failed after rollback"
+              exit 1
+            fi
+          else
+            echo "Warning: No ingress IP found"
+          fi

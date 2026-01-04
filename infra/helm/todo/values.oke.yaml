@@ -1,0 +1,225 @@
+# Values for Oracle Kubernetes Engine (OKE) deployment
+# Phase V: Cloud Deployment with Event-Driven Architecture
+
+# Global configuration
+global:
+  domain: "REPLACE_WITH_LOADBALANCER_IP.nip.io"  # e.g., "123.456.789.0.nip.io"
+  environment: production
+
+# Namespace configuration
+namespace:
+  create: true
+  name: todo
+
+# Backend configuration
+backend:
+  enabled: true
+  replicas: 2  # High availability
+
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/todo-backend  # TODO: Replace GITHUB_USERNAME
+    tag: v2.0.0  # T081: Override with image.tag in CI/CD pipeline
+    pullPolicy: Always
+
+  # T082: Rolling update strategy for zero-downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+
+  probes:
+    liveness:
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 3
+    readiness:
+      path: /ready
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+  config:
+    logLevel: INFO
+    corsOrigins: "https://REPLACE_WITH_LOADBALANCER_IP.nip.io"
+
+  # Dapr sidecar configuration
+  dapr:
+    enabled: true
+    appId: "todo-backend"
+    appPort: "8000"
+    logLevel: "info"
+
+# Frontend configuration
+frontend:
+  enabled: true
+  replicas: 2  # High availability
+
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/todo-frontend  # TODO: Replace GITHUB_USERNAME
+    tag: v2.0.0  # T081: Override with image.tag in CI/CD pipeline
+    pullPolicy: Always
+
+  # T082: Rolling update strategy for zero-downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+  probes:
+    liveness:
+      path: /api/health
+      initialDelaySeconds: 20
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 3
+
+  config:
+    apiUrl: "https://REPLACE_WITH_LOADBALANCER_IP.nip.io"
+
+# Notification Service (NEW - Phase V)
+notificationService:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/todo-notification-service  # TODO: Replace GITHUB_USERNAME
+    tag: v2.0.0
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+  dapr:
+    enabled: true
+    appId: "notification-service"
+    appPort: "8001"
+
+# Recurring Tasks Service (NEW - Phase V)
+recurringTasksService:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/todo-recurring-tasks-service  # TODO: Replace GITHUB_USERNAME
+    tag: v2.0.0
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8002
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+  dapr:
+    enabled: true
+    appId: "recurring-tasks-service"
+    appPort: "8002"
+
+# Audit Service (NEW - Phase V)
+auditService:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/todo-audit-service  # TODO: Replace GITHUB_USERNAME
+    tag: v2.0.0
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8003
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+  dapr:
+    enabled: true
+    appId: "audit-service"
+    appPort: "8003"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  host: "REPLACE_WITH_LOADBALANCER_IP.nip.io"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager annotations for Let's Encrypt SSL
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  tls:
+    enabled: true
+    secretName: todo-tls
+
+# Secrets configuration
+secrets:
+  create: true
+  # Secrets are provided via GitHub Actions or manually
+  # Values should be base64 encoded
+
+# Dapr configuration (NEW - Phase V)
+dapr:
+  enabled: true
+  kafka:
+    bootstrapServers: "REPLACE_WITH_REDPANDA_BOOTSTRAP_SERVERS"  # e.g., "cluster-xyz.redpanda.cloud:9092"
+    username: "REPLACE_WITH_KAFKA_USERNAME"
+    password: "REPLACE_WITH_KAFKA_PASSWORD"  # Will be stored in Kubernetes secret
+
+# Service account
+serviceAccount:
+  create: true
+  name: "todo-sa"
+
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""

@@ -1,12 +1,46 @@
 "use client";
 
-import type { Task } from "@/types";
+import type { Task, Priority } from "@/types";
+import { Check, Pencil, Trash2, Calendar, RotateCcw } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
   onToggleComplete: (taskId: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+}
+
+const priorityColors: Record<Priority, string> = {
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-amber-100 text-amber-700",
+  Low: "bg-emerald-100 text-emerald-700",
+};
+
+function isOverdue(dueDate: string | null): boolean {
+  if (!dueDate) return false;
+  return new Date(dueDate) < new Date();
+}
+
+function formatDueDate(dueDate: string): string {
+  const date = new Date(dueDate);
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return `Overdue by ${Math.abs(diffDays)} day(s)`;
+  } else if (diffDays === 0) {
+    return "Due today";
+  } else if (diffDays === 1) {
+    return "Due tomorrow";
+  } else if (diffDays <= 7) {
+    return `Due in ${diffDays} days`;
+  } else {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  }
 }
 
 export function TaskCard({
@@ -16,105 +50,113 @@ export function TaskCard({
   onDelete,
 }: TaskCardProps) {
   const isCompleted = task.status === "completed";
+  const overdue = !isCompleted && isOverdue(task.due_date);
+  const priorityStyle = priorityColors[task.priority] || priorityColors.Medium;
 
   return (
     <div
-      className={`flex items-start gap-4 rounded-lg border p-4 transition-colors ${
+      className={`group flex items-start gap-4 rounded-xl border p-4 transition-all hover:shadow-md ${
         isCompleted
-          ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
-          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+          ? "border-zinc-100 bg-zinc-50"
+          : "border-zinc-200 bg-white hover:border-indigo-200"
       }`}
     >
+      {/* Checkbox */}
       <button
         onClick={() => onToggleComplete(task.id)}
-        className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
           isCompleted
-            ? "border-green-500 bg-green-500 text-white"
-            : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-600 dark:hover:border-zinc-500"
+            ? "border-indigo-600 bg-indigo-600 text-white"
+            : "border-zinc-300 hover:border-indigo-500"
         }`}
         aria-label={isCompleted ? "Mark incomplete" : "Mark complete"}
       >
-        {isCompleted && (
-          <svg
-            className="h-3 w-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={3}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        )}
+        {isCompleted && <Check className="h-3 w-3" strokeWidth={3} />}
       </button>
 
+      {/* Content */}
       <div className="min-w-0 flex-1">
-        <h3
-          className={`font-medium ${
-            isCompleted
-              ? "text-zinc-500 line-through dark:text-zinc-400"
-              : "text-zinc-900 dark:text-zinc-100"
-          }`}
-        >
-          {task.title}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3
+            className={`font-medium ${
+              isCompleted ? "text-zinc-400 line-through" : "text-zinc-900"
+            }`}
+          >
+            {task.title}
+          </h3>
+          {task.priority && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityStyle}`}
+            >
+              {task.priority}
+            </span>
+          )}
+        </div>
+
         {task.description && (
           <p
             className={`mt-1 text-sm ${
-              isCompleted
-                ? "text-zinc-400 dark:text-zinc-500"
-                : "text-zinc-600 dark:text-zinc-400"
+              isCompleted ? "text-zinc-400" : "text-zinc-600"
             }`}
           >
             {task.description}
           </p>
         )}
-        <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
-          Created {new Date(task.created_at).toLocaleDateString()}
-        </p>
+
+        {/* Meta info row */}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {/* Tags */}
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {task.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Due Date */}
+          {task.due_date && (
+            <span
+              className={`flex items-center gap-1 text-xs ${
+                overdue ? "font-medium text-red-600" : "text-zinc-500"
+              }`}
+            >
+              <Calendar className="h-3 w-3" />
+              {formatDueDate(task.due_date)}
+            </span>
+          )}
+
+          {/* Recurrence */}
+          {task.recurrence_pattern && task.recurrence_pattern !== "none" && (
+            <span className="flex items-center gap-1 text-xs text-purple-600">
+              <RotateCcw className="h-3 w-3" />
+              {task.recurrence_pattern.charAt(0).toUpperCase() +
+                task.recurrence_pattern.slice(1)}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="flex shrink-0 gap-2">
+      {/* Actions */}
+      <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={() => onEdit(task)}
-          className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
           aria-label="Edit task"
         >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
+          <Pencil className="h-4 w-4" />
         </button>
         <button
           onClick={() => onDelete(task.id)}
-          className="rounded p-1 text-zinc-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900 dark:hover:text-red-400"
+          className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
           aria-label="Delete task"
         >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>

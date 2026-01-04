@@ -1,0 +1,104 @@
+# Phase V: Deploy to Oracle Kubernetes Engine (OKE)
+# Triggers after build-images workflow succeeds on main branch
+
+name: Deploy to OKE
+
+on:
+  workflow_run:
+    workflows: ["Build Docker Images"]
+    types: [completed]
+    branches: [main, master]
+
+jobs:
+  deploy:
+    name: Deploy to OKE
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.28.0"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.13.0"
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster connection
+        run: kubectl get nodes
+
+      - name: Create namespace if not exists
+        run: kubectl create namespace todo --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create/Update Kafka credentials secret
+        run: |
+          kubectl create secret generic kafka-credentials \
+            --from-literal=username="${{ secrets.KAFKA_USERNAME }}" \
+            --from-literal=password="${{ secrets.KAFKA_PASSWORD }}" \
+            --namespace todo \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create/Update database credentials secret
+        run: |
+          kubectl create secret generic db-credentials \
+            --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --namespace todo \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy Dapr components
+        run: |
+          kubectl apply -f infra/dapr/components/ -n todo
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install todo ./infra/helm/todo \
+            -f ./infra/helm/todo/values.oke.yaml \
+            --namespace todo \
+            --set backend.image.tag=${{ github.sha }} \
+            --set frontend.image.tag=${{ github.sha }} \
+            --set notificationService.image.tag=${{ github.sha }} \
+            --set recurringTasksService.image.tag=${{ github.sha }} \
+            --set auditService.image.tag=${{ github.sha }} \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          echo "Checking pod status..."
+          kubectl get pods -n todo
+          echo ""
+          echo "Checking services..."
+          kubectl get svc -n todo
+          echo ""
+          echo "Checking ingress..."
+          kubectl get ingress -n todo
+
+      - name: Health check
+        run: |
+          INGRESS_IP=$(kubectl get ingress todo -n todo -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          if [ -n "$INGRESS_IP" ]; then
+            echo "Testing health endpoint at http://$INGRESS_IP/health"
+            for i in {1..10}; do
+              if curl -sf "http://$INGRESS_IP/health" > /dev/null; then
+                echo "Health check passed!"
+                exit 0
+              fi
+              echo "Attempt $i failed, retrying in 10s..."
+              sleep 10
+            done
+            echo "Health check failed after 10 attempts"
+            exit 1
+          else
+            echo "Warning: No ingress IP found yet, skipping health check"
+          fi

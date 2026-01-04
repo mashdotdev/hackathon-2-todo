@@ -1,5 +1,5 @@
-# Phase IV: Frontend Dockerfile
-# Multi-stage build with Next.js standalone output
+# Phase V: Frontend Dockerfile
+# Multi-stage build with Next.js standalone output for cloud deployment
 
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
@@ -76,8 +76,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Labels
 LABEL org.opencontainers.image.title="Todo Frontend"
-LABEL org.opencontainers.image.version="0.4.0"
-LABEL org.opencontainers.image.description="Phase IV Todo Frontend - Kubernetes Ready"
+LABEL org.opencontainers.image.version="2.0.0"
+LABEL org.opencontainers.image.description="Phase V Todo Frontend - Cloud Deployment"
 
 # Run the application
 CMD ["node", "server.js"]

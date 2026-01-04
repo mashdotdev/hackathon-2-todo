@@ -1,0 +1,21 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: todo
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "redis-master.todo.svc.cluster.local:6379"
+    - name: redisPassword
+      value: ""  # No auth enabled (as per research.md)
+    - name: enableTLS
+      value: "false"
+    # Key prefix for state keys
+    - name: keyPrefix
+      value: "todo-state"
+    # TTL configuration
+    - name: actorStateStore
+      value: "true"

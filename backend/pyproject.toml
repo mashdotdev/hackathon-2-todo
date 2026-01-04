@@ -17,6 +17,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "openai-agents[litellm]>=0.6.4",
     "openai-chatkit>=0.1.0",
+    "python-dateutil>=2.9.0",
+    "httpx>=0.28.0",
 ]
 
 [build-system]
