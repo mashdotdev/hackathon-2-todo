@@ -1,0 +1,38 @@
+{{- /*
+T083: Pod Disruption Budget for high availability during updates
+Ensures at least 1 replica is always available during rolling updates.
+*/ -}}
+
+{{- if .Values.backend.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "todo.fullname" . }}-backend-pdb
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "todo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "todo.backend.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.frontend.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "todo.fullname" . }}-frontend-pdb
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "todo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "todo.frontend.selectorLabels" . | nindent 6 }}
+{{- end }}

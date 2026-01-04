@@ -3,10 +3,17 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+import logging
+import traceback
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.core.config import settings
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -19,8 +26,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title="Todo API",
-    description="Phase III: AI-Powered Todo Application with MCP",
-    version="0.3.0",
+    description="Phase V: Cloud-Deployed Event-Driven Todo Application",
+    version="0.5.0",
     lifespan=lifespan,
 )
 
@@ -39,6 +46,17 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler to log all unhandled exceptions."""
+    logger.error(f"Unhandled exception: {exc}")
+    logger.error(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+    )
 
 
 @app.get("/health")
@@ -72,12 +90,18 @@ async def readiness_check() -> dict[str, str | dict[str, str]]:
 
 # Import and include routers after app creation to avoid circular imports
 def setup_routes() -> None:
-    """Setup API routes."""
-    from src.api.routes import auth, chat, tasks
+    """Setup API routes.
+
+    Phase V: Added notifications router for T047-T048.
+    """
+    from src.api.routes import auth, chat, notifications, tasks
 
     app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
     app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
     app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+    app.include_router(
+        notifications.router, prefix="/api/notifications", tags=["Notifications"]
+    )
 
 
 def setup_mcp() -> None:

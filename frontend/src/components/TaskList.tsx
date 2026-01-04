@@ -1,36 +1,87 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { Task, TaskCreate, TaskUpdate } from "@/types";
+import type { Task, TaskCreate, TaskUpdate, TaskListQuery } from "@/types";
 import { TaskCard } from "./TaskCard";
 import { TaskForm } from "./TaskForm";
-
-type FilterStatus = "all" | "pending" | "completed";
+import { SearchBar } from "./SearchBar";
+import { FilterControls, type FilterState } from "./FilterControls";
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterStatus>("all");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    sort: "created_at",
+    order: "desc",
+  });
 
-  const loadTasks = async () => {
+  // Collect available tags from tasks for filter suggestions
+  const availableTags = Array.from(
+    new Set(tasks.flatMap((t) => t.tags || []))
+  ).slice(0, 20);
+
+  const loadTasks = useCallback(async () => {
     try {
       setError(null);
-      const statusFilter = filter === "all" ? undefined : filter;
-      const response = await api.listTasks(statusFilter);
-      setTasks(response.tasks);
+      setIsLoading(true);
+
+      // If there's a search query, use search endpoint
+      if (searchQuery) {
+        setIsSearching(true);
+        const response = await api.searchTasks(searchQuery);
+        setTasks(response.tasks);
+        setIsSearching(false);
+      } else {
+        // Build query from filters
+        const query: TaskListQuery = {
+          status: filters.status,
+          priority: filters.priority,
+          tags: filters.tags,
+          due_date_from: filters.due_date_from,
+          due_date_to: filters.due_date_to,
+          sort: filters.sort,
+          order: filters.order,
+        };
+        const response = await api.listTasks(query);
+        setTasks(response.tasks);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load tasks");
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
-  };
+  }, [
+    searchQuery,
+    filters.status,
+    filters.priority,
+    filters.tags,
+    filters.due_date_from,
+    filters.due_date_to,
+    filters.sort,
+    filters.order,
+  ]);
 
   useEffect(() => {
     loadTasks();
-  }, [filter]);
+  }, [loadTasks]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    // Clear search when applying filters
+    if (searchQuery) {
+      setSearchQuery("");
+    }
+    setFilters(newFilters);
+  };
 
   const handleSubmitTask = async (data: TaskCreate | TaskUpdate) => {
     if (editingTask) {
@@ -60,6 +111,7 @@ export function TaskList() {
 
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
   const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
 
   return (
     <div className="space-y-6">
@@ -75,29 +127,54 @@ export function TaskList() {
         />
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {(["all", "pending", "completed"] as FilterStatus[]).map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              filter === status
-                ? "bg-blue-600 text-white"
-                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-            }`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-            {status === "all" && ` (${tasks.length})`}
-            {status === "pending" && ` (${pendingCount})`}
-            {status === "completed" && ` (${completedCount})`}
-          </button>
-        ))}
+      {/* Search Bar */}
+      <SearchBar
+        onSearch={handleSearch}
+        placeholder="Search tasks by title or description..."
+      />
+
+      {/* Filter Controls */}
+      <FilterControls
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        availableTags={availableTags}
+      />
+
+      {/* Status Summary */}
+      <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+        <span className="font-medium text-zinc-900 dark:text-zinc-100">
+          {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-yellow-500" />
+          {pendingCount} pending
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-blue-500" />
+          {inProgressCount} in progress
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-green-500" />
+          {completedCount} completed
+        </span>
+        {searchQuery && (
+          <span className="ml-auto text-blue-600 dark:text-blue-400">
+            Search results for: "{searchQuery}"
+            <button
+              onClick={() => setSearchQuery("")}
+              className="ml-2 underline hover:no-underline"
+            >
+              Clear
+            </button>
+          </span>
+        )}
       </div>
 
       {/* Task List */}
-      {isLoading ? (
-        <div className="py-8 text-center text-zinc-500">Loading tasks...</div>
+      {isLoading || isSearching ? (
+        <div className="py-8 text-center text-zinc-500">
+          {isSearching ? "Searching..." : "Loading tasks..."}
+        </div>
       ) : error ? (
         <div className="rounded-lg bg-red-50 p-4 text-red-600 dark:bg-red-900/20 dark:text-red-400">
           {error}
@@ -110,9 +187,11 @@ export function TaskList() {
         </div>
       ) : tasks.length === 0 ? (
         <div className="py-8 text-center text-zinc-500 dark:text-zinc-400">
-          {filter === "all"
-            ? "No tasks yet. Add one above!"
-            : `No ${filter} tasks.`}
+          {searchQuery
+            ? `No tasks found for "${searchQuery}"`
+            : filters.status || filters.priority || filters.tags
+            ? "No tasks match the current filters."
+            : "No tasks yet. Add one above!"}
         </div>
       ) : (
         <div className="space-y-3">

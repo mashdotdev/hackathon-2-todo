@@ -1,9 +1,9 @@
 apiVersion: v2
 name: todo
-description: Todo Application Helm Chart - Phase IV Local Kubernetes Deployment
+description: Todo Application Helm Chart - Phase V Cloud Deployment with Event-Driven Architecture
 type: application
-version: 0.4.0
-appVersion: "0.4.0"
+version: 2.0.0
+appVersion: "2.0.0"
 
 keywords:
   - todo

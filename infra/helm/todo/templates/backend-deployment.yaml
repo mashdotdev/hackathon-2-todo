@@ -9,6 +9,15 @@ metadata:
     app.kubernetes.io/component: backend
 spec:
   replicas: {{ .Values.backend.replicas }}
+  {{- if .Values.backend.strategy }}
+  strategy:
+    type: {{ .Values.backend.strategy.type }}
+    {{- if eq .Values.backend.strategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.backend.strategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.backend.strategy.rollingUpdate.maxSurge }}
+    {{- end }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "todo.backend.selectorLabels" . | nindent 6 }}
@@ -16,6 +25,13 @@ spec:
     metadata:
       labels:
         {{- include "todo.backend.selectorLabels" . | nindent 8 }}
+      {{- if .Values.backend.dapr.enabled }}
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "{{ .Values.backend.dapr.appId }}"
+        dapr.io/app-port: "{{ .Values.backend.dapr.appPort }}"
+        dapr.io/log-level: "{{ .Values.backend.dapr.logLevel }}"
+      {{- end }}
     spec:
       containers:
         - name: backend

@@ -7,12 +7,15 @@ __pycache__/
 .venv/
 venv/
 .uv/
+dist/
+*.egg-info/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
+.ruff_cache/
 
 # IDE
 .vscode/
@@ -21,6 +24,7 @@ htmlcov/
 # Environment
 .env
 .env.local
+.env.*
 
 # UV
 uv.lock
@@ -28,6 +32,8 @@ uv.lock
 # OS
 .DS_Store
 Thumbs.db
+*.tmp
+*.swp
 
 # Node (for Phase II frontend)
 node_modules/
@@ -35,4 +41,23 @@ node_modules/
 out/
 build/
 *.log
+
+# Kubernetes/Helm secrets
 infra/helm/todo/secrets.yaml
+infra/helm/todo/values.*.local.yaml
+*.secret.yaml
+
+# Kubernetes config files (local)
+kubeconfig*
+.kube/
+*.key
+*.crt
+
+# Terraform state
+.terraform/
+*.tfstate*
+*.tfvars
+.terraform.lock.hcl
+
+# Docker build cache
+*.tar

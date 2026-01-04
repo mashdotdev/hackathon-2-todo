@@ -1,5 +1,5 @@
-# Phase IV: Backend Dockerfile
-# Multi-stage build for minimal production image
+# Phase V: Backend Dockerfile
+# Multi-stage build for minimal production image with cloud deployment support
 
 # Stage 1: Build dependencies with UV
 FROM python:3.13-slim AS builder
@@ -52,8 +52,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Labels
 LABEL org.opencontainers.image.title="Todo API"
-LABEL org.opencontainers.image.version="0.4.0"
-LABEL org.opencontainers.image.description="Phase IV Todo API - Kubernetes Ready"
+LABEL org.opencontainers.image.version="2.0.0"
+LABEL org.opencontainers.image.description="Phase V Todo API - Cloud Deployment with Event-Driven Architecture"
 
 # Run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

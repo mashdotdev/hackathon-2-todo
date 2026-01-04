@@ -1,0 +1,35 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+  namespace: todo
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker configuration
+    - name: brokers
+      value: "{{ .Values.dapr.kafka.bootstrapServers }}"
+    - name: authType
+      value: "password"
+    - name: saslUsername
+      secretKeyRef:
+        name: kafka-credentials
+        key: username
+    - name: saslPassword
+      secretKeyRef:
+        name: kafka-credentials
+        key: password
+    - name: saslMechanism
+      value: "SCRAM-SHA-256"
+    # Consumer configuration
+    - name: consumerGroup
+      value: "todo-consumers"
+    - name: clientID
+      value: "todo-app"
+    # Enable idempotence
+    - name: enableIdempotence
+      value: "true"
+    # Topic configuration
+    - name: initialOffset
+      value: "oldest"
