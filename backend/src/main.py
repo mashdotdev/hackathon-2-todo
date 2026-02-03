@@ -31,10 +31,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS - allow localhost origins for development
+# Configure CORS - allow localhost and production origins
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://hackathon-2-todo-seven.vercel.app",
     settings.FRONTEND_URL,
 ]
 
