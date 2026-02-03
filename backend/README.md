@@ -17,7 +17,7 @@ FastAPI backend for the Todo application.
 uv sync
 
 # Run development server
-uv run uvicorn src.main:app --reload
+uv run python -m uvicorn src.main:app --reload
 
 # Run tests
 uv run pytest
